@@ -2,6 +2,7 @@ module Main where
 
 import Data.List (maximumBy)
 import Data.Matrix (Matrix, (!), matrix, safeGet, setElem)
+import GHC.IO.Encoding (setLocaleEncoding, utf8)
 
 type Coords = (Int, Int)
 
@@ -40,7 +41,9 @@ notYet :: Eq b => b -> (a, b) -> Bool
 notYet p (_, q) = p /= q
 
 main :: IO ()
-main = (print . last . takeWhile (notYet target) . iterate f) (q, start)
+main =
+    setLocaleEncoding utf8 >>
+    (print . last . takeWhile (notYet target) . iterate f) (q, start)
   where
     n = 20
     m = 20

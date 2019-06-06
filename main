@@ -6,4 +6,4 @@ ghc \
     src/Main.hs \
     -Wall \
     -o bin/Main
-bin/main
+bin/Main
