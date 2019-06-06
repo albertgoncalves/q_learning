@@ -1,5 +1,6 @@
 module Main where
 
+import Data.List (maximumBy)
 import Data.Matrix (Matrix, (!), matrix, safeGet, setElem)
 
 type Coords = (Int, Int)
@@ -19,28 +20,34 @@ allMoves (x, y) =
     | x' <- [x - 1 .. x + 1]
     , y' <- [y - 1 .. y + 1]
     , x' == x || y' == y
-    , (x', y') /= (x + 1, y + 1)
+    , (x', y') /= (x, y)
     ]
 
-neighbors :: Matrix a -> Coords -> [a]
-neighbors m xy = [a | (x, y) <- allMoves xy, Just a <- [safeGet x y m]]
+neighbors :: Matrix a -> Coords -> [(a, Coords)]
+neighbors m xy =
+    [(a, (x, y)) | (x, y) <- allMoves xy, Just a <- [safeGet x y m]]
 
-updateQ :: Float -> Float -> RTable -> QTable -> Coords -> QTable
-updateQ alpha gamma rs qs xy = setElem update xy qs
+updateQ :: Float -> Float -> RTable -> QTable -> Coords -> (QTable, Coords)
+updateQ alpha gamma rs qs xy = (setElem update xy qs, snd future)
   where
     initialQ = qs ! xy
     initialR = rs ! xy
-    future = maximum (neighbors rs xy)
-    update = ((1 - alpha) * initialQ) + (alpha * (initialR + (gamma * future)))
+    future = maximumBy (\(a, _) (b, _) -> compare a b) (neighbors qs xy)
+    update =
+        ((1 - alpha) * initialQ) + (alpha * (initialR + (gamma * fst future)))
+
+notYet :: Eq b => b -> (a, b) -> Bool
+notYet p (_, q) = p /= q
 
 main :: IO ()
-main = print r >> (print . updateQ alpha gamma r q) start
+main = (print . last . takeWhile (notYet target) . iterate f) (q, start)
   where
-    n = 4
-    m = 5
-    start = (2, 1)
-    target = (2, 2)
+    n = 20
+    m = 20
+    start = (1, 1)
+    target = (17, 16)
     r = initTable n m target (-0.1) 100 :: RTable
     q = (matrix n m . const) 0 :: QTable
     alpha = 0.5
     gamma = 0.5
+    f = uncurry (updateQ alpha gamma r)
