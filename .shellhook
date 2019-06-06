@@ -1,0 +1,21 @@
+#!usr/bin/env bash
+
+if [ $(uname -s) = "Darwin" ]; then
+    alias ls='ls --color=auto'
+    alias ll='ls -al'
+else
+    alias open="xdg-open"
+fi
+
+if [ ! -d bin/ ]; then
+    mkdir bin/
+fi
+
+lint() {
+    echo $1
+    hlint $1
+    hindent --indent-size 4 --sort-imports --line-length 79 $1
+    echo ""
+}
+
+export -f lint
