@@ -5,6 +5,10 @@ import Data.List (partition)
 import System.Random (next, random, split)
 import System.Random.TF (TFGen)
 
+iterateFor :: Int -> (a -> a) -> a -> a
+iterateFor 0 f x = f x
+iterateFor n f x = iterateFor (n - 1) f (f x)
+
 mapPair :: (a -> b) -> (a, a) -> (b, b)
 mapPair = uncurry . on (,)
 

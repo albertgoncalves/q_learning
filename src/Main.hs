@@ -3,7 +3,7 @@ module Main where
 import Data.Matrix (Matrix, (!), matrix, safeGet, setElem)
 import GHC.IO.Encoding (setLocaleEncoding, utf8)
 import System.Random.TF (TFGen, mkTFGen)
-import Utils (shuffle)
+import Utils (iterateFor, shuffle)
 
 type Coords = (Int, Int)
 
@@ -44,11 +44,9 @@ updateQ ::
 updateQ alpha gamma select rs (qs, xy, seed) =
     (setElem update xy qs, snd future, seed')
   where
-    initialQ = qs ! xy
-    initialR = rs ! xy
     (future, seed') = select seed qs xy
     update =
-        ((1 - alpha) * initialQ) + (alpha * (initialR + (gamma * fst future)))
+        ((1 - alpha) * qs ! xy) + (alpha * (rs ! xy + (gamma * fst future)))
 
 main :: IO ()
 main =
@@ -59,9 +57,9 @@ main =
     m = 7
     alpha = 0.5
     gamma = 0.5
-    start = ((matrix n m . const) 0 :: QTable, (1, 1), mkTFGen 0)
+    start = (matrix n m (const 0) :: QTable, (1, 1), mkTFGen 0)
     target = (17, 3)
     rs = initTable n m target (-0.1) 100 :: RTable
     lives = 10
     steps = 1000
-    f = last . take steps . iterate (updateQ alpha gamma randMove rs)
+    f = iterateFor steps (updateQ alpha gamma randMove rs)
