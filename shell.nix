@@ -8,6 +8,8 @@ with pkgs; mkShell {
             pkgs.hoogle
             pkgs.HUnit
             pkgs.matrix
+            pkgs.random
+            pkgs.tf-random
         ]))
     ];
     shellHook = ''

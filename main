@@ -3,7 +3,7 @@
 set -e
 
 ghc \
-    src/Main.hs \
+    src/Utils.hs src/Main.hs \
     -Wall \
     -o bin/Main
 bin/Main

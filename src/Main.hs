@@ -1,8 +1,9 @@
 module Main where
 
-import Data.List (maximumBy)
 import Data.Matrix (Matrix, (!), matrix, safeGet, setElem)
 import GHC.IO.Encoding (setLocaleEncoding, utf8)
+import System.Random.TF (TFGen, mkTFGen)
+import Utils (shuffle)
 
 type Coords = (Int, Int)
 
@@ -28,29 +29,39 @@ neighbors :: Matrix a -> Coords -> [(a, Coords)]
 neighbors m xy =
     [(a, (x, y)) | (x, y) <- allMoves xy, Just a <- [safeGet x y m]]
 
-updateQ :: Float -> Float -> RTable -> QTable -> Coords -> (QTable, Coords)
-updateQ alpha gamma rs qs xy = (setElem update xy qs, snd future)
+randMove :: TFGen -> QTable -> Coords -> ((Float, Coords), TFGen)
+randMove seed qs xy = (head qs', seed')
+  where
+    (qs', seed') = shuffle (neighbors qs xy) seed
+
+updateQ ::
+       Float
+    -> Float
+    -> (TFGen -> QTable -> Coords -> ((Float, Coords), TFGen))
+    -> RTable
+    -> (TFGen, QTable, Coords)
+    -> (TFGen, QTable, Coords)
+updateQ alpha gamma select rs (seed, qs, xy) =
+    (seed', setElem update xy qs, snd future)
   where
     initialQ = qs ! xy
     initialR = rs ! xy
-    future = maximumBy (\(a, _) (b, _) -> compare a b) (neighbors qs xy)
+    (future, seed') = select seed qs xy
     update =
         ((1 - alpha) * initialQ) + (alpha * (initialR + (gamma * fst future)))
-
-notYet :: Eq b => b -> (a, b) -> Bool
-notYet p (_, q) = p /= q
 
 main :: IO ()
 main =
     setLocaleEncoding utf8 >>
-    (print . last . takeWhile (notYet target) . iterate f) (q, start)
+    mapM_ (print . (\(_, x, _) -> x)) (take lives $ iterate f start)
   where
-    n = 20
-    m = 20
-    start = (1, 1)
-    target = (17, 16)
-    r = initTable n m target (-0.1) 100 :: RTable
-    q = (matrix n m . const) 0 :: QTable
+    n = 10
+    m = 7
     alpha = 0.5
     gamma = 0.5
-    f = uncurry (updateQ alpha gamma r)
+    start = (mkTFGen 0, (matrix n m . const) 0 :: QTable, (1, 1))
+    target = (7, 3)
+    rs = initTable n m target (-0.1) 100 :: RTable
+    lives = 10
+    steps = 100
+    f = last . take steps . iterate (updateQ alpha gamma randMove rs)
