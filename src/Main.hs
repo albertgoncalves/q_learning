@@ -55,13 +55,13 @@ main =
     setLocaleEncoding utf8 >>
     mapM_ (print . (\(_, x, _) -> x)) (take lives $ iterate f start)
   where
-    n = 10
+    n = 20
     m = 7
     alpha = 0.5
     gamma = 0.5
     start = (mkTFGen 0, (matrix n m . const) 0 :: QTable, (1, 1))
-    target = (7, 3)
+    target = (17, 3)
     rs = initTable n m target (-0.1) 100 :: RTable
     lives = 10
-    steps = 100
+    steps = 1000
     f = last . take steps . iterate (updateQ alpha gamma randMove rs)
