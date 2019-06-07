@@ -12,16 +12,16 @@ iterateFor n f x = iterateFor (n - 1) f (f x)
 mapPair :: (a -> b) -> (a, a) -> (b, b)
 mapPair = uncurry . on (,)
 
-attach :: [a] -> TFGen -> [(a, Bool)] -> ([(a, Bool)], TFGen)
-attach [] g accu = (accu, snd $ next g)
-attach (x:xs) g accu = attach xs g' ((x, b) : accu)
+attachBool :: [a] -> TFGen -> [(a, Bool)] -> ([(a, Bool)], TFGen)
+attachBool [] g accu = (accu, snd $ next g)
+attachBool (x:xs) g accu = attachBool xs g' ((x, b) : accu)
   where
     (b, g') = random g
 
-partitionR :: [a] -> TFGen -> (([a], TFGen), ([a], TFGen))
-partitionR xs g = ((ls, lg), (rs, rg))
+randPartition :: [a] -> TFGen -> (([a], TFGen), ([a], TFGen))
+randPartition xs g = ((ls, lg), (rs, rg))
   where
-    (ys, g') = attach xs g []
+    (ys, g') = attachBool xs g []
     (ls, rs) = mapPair (map fst) (partition snd ys)
     (lg, rg) = split g'
 
@@ -30,4 +30,4 @@ shuffle [] g = ([], g)
 shuffle [x] g = ([x], g)
 shuffle xs g = (ls' ++ rs', rg')
   where
-    ((ls', _), (rs', rg')) = mapPair (uncurry shuffle) (partitionR xs g)
+    ((ls', _), (rs', rg')) = mapPair (uncurry shuffle) (randPartition xs g)
