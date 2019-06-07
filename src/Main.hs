@@ -39,10 +39,10 @@ updateQ ::
     -> Float
     -> (TFGen -> QTable -> Coords -> ((Float, Coords), TFGen))
     -> RTable
-    -> (TFGen, QTable, Coords)
-    -> (TFGen, QTable, Coords)
-updateQ alpha gamma select rs (seed, qs, xy) =
-    (seed', setElem update xy qs, snd future)
+    -> (QTable, Coords, TFGen)
+    -> (QTable, Coords, TFGen)
+updateQ alpha gamma select rs (qs, xy, seed) =
+    (setElem update xy qs, snd future, seed')
   where
     initialQ = qs ! xy
     initialR = rs ! xy
@@ -53,13 +53,13 @@ updateQ alpha gamma select rs (seed, qs, xy) =
 main :: IO ()
 main =
     setLocaleEncoding utf8 >>
-    mapM_ (print . (\(_, x, _) -> x)) (take lives $ iterate f start)
+    mapM_ (print . (\(x, _, _) -> x)) (take lives $ iterate f start)
   where
     n = 20
     m = 7
     alpha = 0.5
     gamma = 0.5
-    start = (mkTFGen 0, (matrix n m . const) 0 :: QTable, (1, 1))
+    start = ((matrix n m . const) 0 :: QTable, (1, 1), mkTFGen 0)
     target = (17, 3)
     rs = initTable n m target (-0.1) 100 :: RTable
     lives = 10
