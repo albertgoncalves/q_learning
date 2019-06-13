@@ -1,9 +1,12 @@
 module Main where
 
+import Data.Function (on)
+import Data.List (maximumBy)
 import Data.Matrix (Matrix, (!), matrix, safeGet, setElem)
 import GHC.IO.Encoding (setLocaleEncoding, utf8)
+import Prelude hiding (iterate)
 import System.Random.TF (TFGen, mkTFGen)
-import Utils (iterateFor, shuffle)
+import Utils (shuffle)
 
 type Coords = (Int, Int)
 
@@ -30,9 +33,9 @@ neighbors m xy =
     [(a, (x, y)) | (x, y) <- allMoves xy, Just a <- [safeGet x y m]]
 
 randMove :: TFGen -> QTable -> Coords -> ((Float, Coords), TFGen)
-randMove seed qs xy = (head qs', seed')
+randMove seed qTable xy = (maximumBy (compare `on` fst) qTable', seed')
   where
-    (qs', seed') = shuffle (neighbors qs xy) seed
+    (qTable', seed') = shuffle (neighbors qTable xy) seed
 
 updateMoveQ ::
        Float
@@ -41,25 +44,61 @@ updateMoveQ ::
     -> RTable
     -> (QTable, Coords, TFGen)
     -> (QTable, Coords, TFGen)
-updateMoveQ alpha gamma select rs (qs, xy, seed) =
-    (setElem update xy qs, snd future, seed')
+updateMoveQ alpha gamma select rTable (qTable, xy, seed) =
+    (setElem update xy qTable, snd future, seed')
   where
-    (future, seed') = select seed qs xy
+    (future, seed') = select seed qTable xy
     update =
-        ((1 - alpha) * qs ! xy) + (alpha * (rs ! xy + (gamma * fst future)))
+        ((1 - alpha) * qTable ! xy) +
+        (alpha * (rTable ! xy + (gamma * fst future)))
+
+foldModel ::
+       Coords
+    -> Float
+    -> Float
+    -> RTable
+    -> Int
+    -> (QTable, Coords, TFGen)
+    -> (QTable, TFGen, Int)
+foldModel target alpha gamma rTable n model
+    | xy == target = (qTable, seed, n)
+    | otherwise = foldModel target alpha gamma rTable (n + 1) move
+  where
+    f = updateMoveQ alpha gamma randMove rTable
+    move = f model
+    (_, xy, _) = move
+    (qTable, _, seed) = f move
+
+lifetimes ::
+       Coords
+    -> Coords
+    -> Float
+    -> Float
+    -> RTable
+    -> QTable
+    -> TFGen
+    -> Int
+    -> IO ()
+lifetimes start target alpha gamma rTable qTable seed n
+    | n <= 0 = f
+    | otherwise =
+        f >> lifetimes start target alpha gamma rTable qTable' seed' (n - 1)
+  where
+    f = print qTable' >> print n'
+    (qTable', seed', n') =
+        foldModel target alpha gamma rTable 0 (qTable, start, seed)
 
 main :: IO ()
 main =
     setLocaleEncoding utf8 >>
-    mapM_ (print . (\(x, _, _) -> x)) (take lives $ iterate f start)
+    lifetimes start target alpha gamma rTable qTable seed 50
   where
+    start = (1, 1)
+    target = (17, 3)
     n = 20
-    m = 7
+    m = 18
     alpha = 0.5
     gamma = 0.5
-    start = (matrix n m (const 0) :: QTable, (1, 1), mkTFGen 0)
-    target = (17, 3)
-    rs = initTable n m target (-0.1) 100 :: RTable
-    lives = 10
-    steps = 500
-    f = iterateFor steps (updateMoveQ alpha gamma randMove rs)
+    seed = mkTFGen 0
+    qTable = matrix n m (const 0) :: QTable
+    rTable = initTable n m target (-0.1) 100 :: RTable
