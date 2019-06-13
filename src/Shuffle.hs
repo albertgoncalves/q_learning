@@ -1,4 +1,4 @@
-module Utils where
+module Shuffle where
 
 import Data.Function (on)
 import Data.List (partition)

@@ -7,7 +7,7 @@ import GHC.IO.Encoding (setLocaleEncoding, utf8)
 import Prelude hiding (iterate)
 import System.Random.TF (TFGen, mkTFGen)
 import Text.Printf (printf)
-import Utils (shuffle)
+import Shuffle (shuffle)
 
 type Coords = (Int, Int)
 
@@ -100,12 +100,12 @@ lifetimes target alpha gamma rTable = loop
 main :: IO ()
 main = setLocaleEncoding utf8 >> f
   where
-    starts = replicate 5 (1, 1)
-    target = (17, 3)
-    n = 20
-    m = 18
-    alpha = 0.8
-    gamma = 0.8
+    starts = replicate 10 (1, 1)
+    target = (20, 3)
+    n = 25
+    m = 15
+    alpha = 0.5
+    gamma = 0.5
     seed = mkTFGen 0
     qTable = matrix n m (const 0)
     rTable = initTable n m target (-0.1) 100
